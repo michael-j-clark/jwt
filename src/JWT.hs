@@ -21,6 +21,7 @@ import Data.ByteArray
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy.Internal as IB
 import qualified Data.ByteString.Base64 as B64
+import Data.Hex
 import Data.Int
 import Data.Maybe
 import qualified Data.Text as T
@@ -41,17 +42,16 @@ data Payload = Payload
     iss :: T.Text
   , iat :: Int64
   , exp :: Int64
-  }
-
-data Signature = Signature
-  {
-
-  }
+  } deriving (Show,Generic)
 
 instance ToJSON Header
+instance ToJSON Payload
 
 encodeHeaderPayload :: ByteString -> ByteString -> ByteString
-encodeHeaderPayload header payload =  B64.encode header <> "." <> B64.encode payload 
+encodeHeaderPayload header payload =  B64.encode header  <> "." <> ( B64.encode) payload 
 
-secretHash :: ByteString -> ByteString
-secretHash x = Data.ByteArray.convert $  (hmacGetDigest $ (hmac (secret::ByteString) (x::ByteString) ::HMAC SHA256))
+sigHash :: ByteString -> ByteString
+sigHash x = B64.encode $ Data.ByteArray.convert $  (hmacGetDigest $ (hmac (secret::ByteString) (x::ByteString) ::HMAC SHA256))
+
+assembleJWT :: ByteString -> ByteString
+assembleJWT headerPayload = headerPayload <> "." <> (sigHash headerPayload)
